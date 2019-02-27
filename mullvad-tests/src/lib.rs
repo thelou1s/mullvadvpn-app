@@ -1,3 +1,5 @@
+#![cfg(not(target_os = "android"))]
+
 use self::{mock_openvpn::MOCK_OPENVPN_ARGS_FILE, platform_specific::*};
 use futures::sync::oneshot;
 use jsonrpc_client_core::{Future, Transport};
@@ -18,7 +20,6 @@ use tempfile::TempDir;
 use tokio::reactor::Handle;
 
 pub use notify::op::{self as watch_event, Op as WatchEvent};
-
 
 pub mod mock_openvpn;
 
@@ -280,7 +281,6 @@ impl DaemonRunner {
             .env("MOCK_OPENVPN_ARGS_FILE", mock_openvpn_args_file.clone())
             .stdout_null()
             .stderr_null();
-
 
         let process = expression.start().expect("Failed to start daemon");
 
