@@ -9,7 +9,6 @@ use std::net::IpAddr;
 use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
 use talpid_types::net::Endpoint;
 
-
 #[cfg(target_os = "macos")]
 #[path = "macos.rs"]
 mod imp;
@@ -22,8 +21,11 @@ mod imp;
 #[path = "windows.rs"]
 mod imp;
 
-pub use self::imp::Error;
+#[cfg(target_os = "android")]
+#[path = "android.rs"]
+mod imp;
 
+pub use self::imp::Error;
 
 #[cfg(unix)]
 lazy_static! {
