@@ -2,7 +2,6 @@ use super::{Config, ErrorKind, Result, ResultExt, Tunnel};
 use crate::network_interface::{NetworkInterface, TunnelDevice};
 use std::{ffi::CString, fs, os::unix::io::AsRawFd, path::Path};
 
-
 pub struct WgGoTunnel {
     interface_name: String,
     handle: Option<i32>,
@@ -109,9 +108,9 @@ extern "C" {
     // Positive return values are tunnel handles for this specific wireguard tunnel instance.
     // Negative return values signify errors. All error codes are opaque.
     fn wgTurnOnWithFd(
-        iface_name: *const i8,
+        iface_name: *const u8,
         mtu: i64,
-        settings: *const i8,
+        settings: *const u8,
         fd: Fd,
         log_fd: Fd,
         logLevel: WgLogLevel,
