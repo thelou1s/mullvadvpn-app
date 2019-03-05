@@ -19,7 +19,6 @@ pub mod wireguard;
 const OPENVPN_LOG_FILENAME: &str = "openvpn.log";
 const WIREGUARD_LOG_FILENAME: &str = "wireguard.log";
 
-
 error_chain! {
     errors {
         /// Tunnel can't have IPv6 enabled because the system has disabled IPv6 support.
@@ -50,7 +49,6 @@ error_chain! {
         ;
     }
 }
-
 
 /// Possible events from the VPN tunnel and the child process managing it.
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -218,7 +216,6 @@ impl TunnelMonitor {
         }
     }
 
-
     /// Creates a handle to this monitor, allowing the tunnel to be closed while some other
     /// thread
     /// is blocked in `wait`.
@@ -231,7 +228,6 @@ impl TunnelMonitor {
         self.monitor.wait().map_err(Error::from)
     }
 }
-
 
 /// A handle to a `TunnelMonitor`
 pub enum CloseHandle {
@@ -282,7 +278,6 @@ impl InternalTunnelMonitor {
     }
 }
 
-
 fn is_ipv6_enabled_in_os() -> bool {
     #[cfg(windows)]
     {
@@ -316,7 +311,7 @@ fn is_ipv6_enabled_in_os() -> bool {
             .map(|disable_ipv6| disable_ipv6.trim() == "0")
             .unwrap_or(false)
     }
-    #[cfg(target_os = "macos")]
+    #[cfg(any(target_os = "macos", target_os = "android"))]
     {
         true
     }
