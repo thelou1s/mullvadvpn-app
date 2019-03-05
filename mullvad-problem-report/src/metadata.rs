@@ -1,6 +1,5 @@
 use std::{collections::HashMap, process::Command};
 
-
 pub const PRODUCT_VERSION: &str = include_str!(concat!(env!("OUT_DIR"), "/product-version.txt"));
 
 pub fn collect() -> HashMap<String, String> {
@@ -106,6 +105,13 @@ mod os {
         let version = version.unwrap_or("N/A");
         let full_version = full_version.unwrap_or("N/A");
         format!("Windows {} ({})", version, full_version)
+    }
+}
+
+#[cfg(target_os = "android")]
+mod os {
+    pub fn version() -> String {
+        String::from("Android")
     }
 }
 
