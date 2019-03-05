@@ -11,7 +11,6 @@ extern crate error_chain;
 #[macro_use]
 extern crate serde;
 
-
 mod account_history;
 mod geoip;
 mod management_interface;
@@ -49,7 +48,6 @@ use talpid_types::{
     net::{openvpn, wireguard, TransportProtocol, TunnelParameters},
     tunnel::{BlockReason, TunnelStateTransition},
 };
-
 
 error_chain! {
     errors {
@@ -147,7 +145,6 @@ impl DaemonExecutionState {
     }
 }
 
-
 pub struct Daemon {
     tunnel_command_tx: SyncUnboundedSender<TunnelCommand>,
     tunnel_state: TunnelStateTransition,
@@ -203,7 +200,6 @@ impl Daemon {
         let settings = Settings::load().chain_err(|| "Unable to read settings")?;
         let account_history = account_history::AccountHistory::new(&cache_dir)
             .chain_err(|| "Unable to read wireguard key cache")?;
-
 
         let (tx, rx) = mpsc::channel();
         let tunnel_parameters_generator = MullvadTunnelParametersGenerator { tx: tx.clone() };
@@ -633,6 +629,8 @@ impl Daemon {
         const PLATFORM: &str = "macos";
         #[cfg(target_os = "windows")]
         const PLATFORM: &str = "windows";
+        #[cfg(target_os = "android")]
+        const PLATFORM: &str = "android";
 
         let fut = self
             .version_proxy
@@ -1002,7 +1000,6 @@ impl Drop for Daemon {
         }
     }
 }
-
 
 struct MullvadTunnelParametersGenerator {
     tx: mpsc::Sender<DaemonEvent>,
