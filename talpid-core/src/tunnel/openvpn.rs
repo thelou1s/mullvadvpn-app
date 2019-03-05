@@ -76,16 +76,14 @@ error_chain! {
     }
 }
 
-
 #[cfg(unix)]
 static OPENVPN_DIE_TIMEOUT: Duration = Duration::from_secs(4);
 #[cfg(windows)]
 static OPENVPN_DIE_TIMEOUT: Duration = Duration::from_secs(30);
 
-
 #[cfg(target_os = "macos")]
 const OPENVPN_PLUGIN_FILENAME: &str = "libtalpid_openvpn_plugin.dylib";
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", target_os = "android"))]
 const OPENVPN_PLUGIN_FILENAME: &str = "libtalpid_openvpn_plugin.so";
 #[cfg(windows)]
 const OPENVPN_PLUGIN_FILENAME: &str = "talpid_openvpn_plugin.dll";
@@ -404,7 +402,6 @@ impl<C: OpenVpnBuilder + 'static> OpenVpnMonitor<C> {
         Ok(temp_file)
     }
 
-
     #[cfg(unix)]
     fn set_user_pass_file_permissions(file: &fs::File) -> io::Result<()> {
         use std::os::unix::fs::PermissionsExt;
@@ -560,7 +557,6 @@ impl ProcessHandle for OpenVpnProcHandle {
     }
 }
 
-
 mod event_server {
     use jsonrpc_core::{Error, IoHandler, MetaIoHandler};
     use jsonrpc_macros::build_rpc_trait;
@@ -614,7 +610,6 @@ mod event_server {
         }
     }
 }
-
 
 #[cfg(test)]
 mod tests {
