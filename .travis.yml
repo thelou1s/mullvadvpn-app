@@ -36,15 +36,17 @@ matrix:
         - cargo test --verbose
 
     # Daemon - Windows
-    - language: rust
-      rust: stable
-      os: windows
+    - os: windows
       cache:  &rust_windows_cache
         directories:
           - windows\nsis-plugins\bin
           - windows\windns\bin
           - windows\winfw\bin
           - windows\winroute\bin
+      install:
+        - curl -sSf -o rust-install.exe "https://static.rust-lang.org/dist/rust-beta-x86_64-pc-windows-msvc.exe"
+        - ./rust-install.exe /VERYSILENT /NORESTART /DIR="C:\rust"
+        - export PATH="$PATH:/c/rust/bin/"
       before_script: *rust_before_script
       script: &rust_windows_script
         - export PATH="/c/Program Files (x86)/Microsoft Visual Studio/2017/BuildTools/MSBuild/15.0/Bin/amd64/:$PATH"
@@ -52,10 +54,12 @@ matrix:
         - cargo build --verbose
         - cargo test --verbose
 
-    - language: rust
-      rust: nightly
-      os: windows
+    - os: windows
       cache: *rust_windows_cache
+      install:
+        - curl -sSf -o rust-install.exe "https://static.rust-lang.org/dist/rust-nightly-x86_64-pc-windows-msvc.exe"
+        - ./rust-install.exe /VERYSILENT /NORESTART /DIR="C:\rust"
+        - export PATH="$PATH:/c/rust/bin/"
       before_script: *rust_before_script
       script: *rust_windows_script
 
