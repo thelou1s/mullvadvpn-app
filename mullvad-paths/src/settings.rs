@@ -16,14 +16,21 @@ fn get_settings_dir() -> Result<PathBuf> {
 }
 
 pub fn get_default_settings_dir() -> Result<PathBuf> {
-    let dir;
-    #[cfg(unix)]
+    #[cfg(not(target_os = "android"))]
     {
-        dir = Ok(PathBuf::from("/etc"));
+        let dir;
+        #[cfg(unix)]
+        {
+            dir = Ok(PathBuf::from("/etc"));
+        }
+        #[cfg(windows)]
+        {
+            dir = dirs::data_local_dir().ok_or_else(|| crate::ErrorKind::FindDirError.into());
+        }
+        dir.map(|dir| dir.join(crate::PRODUCT_NAME))
     }
-    #[cfg(windows)]
+    #[cfg(target_os = "android")]
     {
-        dir = dirs::data_local_dir().ok_or_else(|| crate::ErrorKind::FindDirError.into());
+        Ok(PathBuf::from(crate::APP_PATH))
     }
-    dir.map(|dir| dir.join(crate::PRODUCT_NAME))
 }
