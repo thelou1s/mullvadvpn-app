@@ -24,6 +24,8 @@ class MullvadDaemon {
         }
     }
 
+    fun run() = ProcessBuilder(MULLVAD_DAEMON_PATH).start()
+
     private fun extractFile(context: Context, asset: String, destination: String) {
         val destinationStream = FileOutputStream(destination)
 

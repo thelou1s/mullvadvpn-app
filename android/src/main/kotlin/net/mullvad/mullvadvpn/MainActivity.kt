@@ -10,6 +10,9 @@ import android.support.v4.app.FragmentActivity
 
 class MainActivity : FragmentActivity() {
     private lateinit var extractDaemonJob: Job
+    private lateinit var startDaemonJob: Job
+    private lateinit var daemon: MullvadDaemon
+    private lateinit var daemonProcess: Process
 
     var selectedRelayItemCode: String? = null
 
@@ -17,9 +20,8 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main)
 
-        extractDaemonJob = GlobalScope.launch(Dispatchers.Default) {
-            MullvadDaemon().extract(this@MainActivity)
-        }
+        daemon = MullvadDaemon()
+        startDaemonJob = startDaemon()
 
         if (savedInstanceState == null) {
             addInitialFragment()
@@ -27,9 +29,9 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onDestroy() {
-        if (extractDaemonJob.isActive) {
-            extractDaemonJob.cancel()
-        }
+        extractDaemonJob.cancel()
+        startDaemonJob.cancel()
+        daemonProcess.destroy()
 
         super.onDestroy()
     }
@@ -39,5 +41,14 @@ class MainActivity : FragmentActivity() {
             add(R.id.main_fragment, LoginFragment())
             commit()
         }
+    }
+
+    private fun startDaemon() = GlobalScope.launch(Dispatchers.Main) {
+        extractDaemonJob = GlobalScope.launch(Dispatchers.Default) {
+            daemon.extract(this@MainActivity)
+        }
+
+        extractDaemonJob.join()
+        daemonProcess = daemon.run()
     }
 }
