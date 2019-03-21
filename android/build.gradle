@@ -4,6 +4,9 @@ import org.jmailen.gradle.kotlinter.tasks.LintTask
 apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 
+def repoRootPath = projectDir.absoluteFile.parentFile.absolutePath
+def extraAssetsDirectory = "$project.buildDir/extraAssets"
+
 android {
     compileSdkVersion 28
     buildToolsVersion '28.0.3'
@@ -22,6 +25,21 @@ android {
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }
+
+    sourceSets {
+        main {
+            assets {
+                srcDirs = files(extraAssetsDirectory)
+            }
+        }
+    }
+
+    applicationVariants.all { variant ->
+        variant.mergeAssetsProvider.configure {
+            dependsOn copyMullvadDaemon
+            dependsOn copyApiRootCertificate
+        }
+    }
 }
 
 repositories {
@@ -33,6 +51,7 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:28.0.0'
     implementation 'com.android.support:recyclerview-v7:28.0.0'
     implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.3.21'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.1'
 }
 
 buildscript {
@@ -65,3 +84,15 @@ task format(type: FormatTask, group: 'formatting') {
 }
 
 lint.dependsOn lintKotlin
+
+task copyMullvadDaemon(type: Copy) {
+    from "$repoRootPath/target/aarch64-linux-android/debug"
+    include 'mullvad-daemon'
+    into extraAssetsDirectory
+}
+
+task copyApiRootCertificate(type: Copy) {
+    from "$repoRootPath/dist-assets"
+    include "api_root_ca.pem"
+    into extraAssetsDirectory
+}
