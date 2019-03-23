@@ -1,0 +1,21 @@
+[package]
+name = "mullvad-jni"
+version = "0.1.0"
+authors = ["Mullvad VPN <admin@mullvad.net>"]
+description = "JNI interface for the Mullvad daemon"
+license = "GPL-3.0"
+edition = "2018"
+
+[lib]
+crate_type = ["cdylib"]
+
+[dependencies]
+error-chain = "0.12"
+chrono = "0.4"
+fern = "0.5"
+jni = "0.11"
+lazy_static = "1"
+log = "0.4"
+mullvad-ipc-client = { path = "../mullvad-ipc-client" }
+mullvad-paths = { path = "../mullvad-paths" }
+mullvad-types = { path = "../mullvad-types" }

@@ -14,6 +14,8 @@ class MainActivity : FragmentActivity() {
     private lateinit var daemon: MullvadDaemon
     private lateinit var daemonProcess: Process
 
+    lateinit var ipcClient: MullvadIpcClient
+
     var selectedRelayItemCode: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -50,5 +52,6 @@ class MainActivity : FragmentActivity() {
 
         extractDaemonJob.join()
         daemonProcess = daemon.run()
+        ipcClient = MullvadIpcClient()
     }
 }
