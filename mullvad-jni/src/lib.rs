@@ -1,4 +1,4 @@
-use error_chain::ChainedError;
+use error_chain::*;
 use jni::{
     objects::{JObject, JString, JValue},
     JNIEnv,
@@ -6,15 +6,19 @@ use jni::{
 use lazy_static::lazy_static;
 use mullvad_ipc_client::{new_standalone_ipc_client, DaemonRpcClient};
 use mullvad_paths::{get_log_dir, get_rpc_socket_path};
-use mullvad_types::account::AccountData;
+use mullvad_types::{account::AccountData, settings::Settings};
 use std::{
     ptr,
     sync::{Mutex, MutexGuard},
+    thread,
+    time::Duration,
 };
 
 lazy_static! {
     static ref IPC_CLIENT: Mutex<DaemonRpcClient> = connect();
 }
+
+error_chain! {}
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -119,6 +123,24 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_setAccount(
 }
 
 fn connect() -> Mutex<DaemonRpcClient> {
+    for attempt in 1..=10 {
+        log::debug!("Connection attempt {}", attempt);
+
+        match try_connect() {
+            Ok(ipc_client) => return Mutex::new(ipc_client),
+            Err(error) => log::warn!("{}", error.display_chain()),
+        }
+
+        let delay = (attempt - 1) * 50;
+        log::warn!("Retrying in {} ms", delay);
+        thread::sleep(Duration::from_millis(delay));
+    }
+
+    log::error!("Failed to connect to daemon");
+    panic!();
+}
+
+fn try_connect() -> Result<DaemonRpcClient> {
     let rpc_socket_path = get_rpc_socket_path();
 
     log::debug!(
@@ -126,14 +148,7 @@ fn connect() -> Mutex<DaemonRpcClient> {
         rpc_socket_path.display()
     );
 
-    match new_standalone_ipc_client(&rpc_socket_path) {
-        Ok(ipc_client) => Mutex::new(ipc_client),
-        Err(error) => {
-            let chained_error = error.chain_err(|| "Failed to initialize IPC client");
-            log::error!("{}", chained_error.display_chain());
-            panic!("No IPC client to use");
-        }
-    }
+    new_standalone_ipc_client(&rpc_socket_path).chain_err(|| "Failed to initialize IPC client")
 }
 
 fn lock_ipc_client() -> MutexGuard<'static, DaemonRpcClient> {
