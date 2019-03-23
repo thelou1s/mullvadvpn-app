@@ -3,6 +3,7 @@ package net.mullvad.mullvadvpn
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.lang.ProcessBuilder.Redirect
 
 import android.content.Context
 
@@ -24,7 +25,10 @@ class MullvadDaemon {
         }
     }
 
-    fun run() = ProcessBuilder(MULLVAD_DAEMON_PATH).start()
+    fun run() = ProcessBuilder(MULLVAD_DAEMON_PATH, "-vvv")
+        .redirectErrorStream(true)
+        .redirectOutput(Redirect.appendTo(File("/dev/null")))
+        .start()
 
     private fun extractFile(context: Context, asset: String, destination: String) {
         val destinationStream = FileOutputStream(destination)
