@@ -15,6 +15,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 
+import net.mullvad.mullvadvpn.model.LoginState
+
 class LoginFragment : Fragment() {
     private lateinit var title: TextView
     private lateinit var subtitle: TextView

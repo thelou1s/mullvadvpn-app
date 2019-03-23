@@ -4,6 +4,8 @@ import android.content.Context
 import android.view.View
 import android.widget.TextView
 
+import net.mullvad.mullvadvpn.model.ConnectionState
+
 class ConnectionStatus(val parentView: View, val context: Context) {
     private val spinner: View = parentView.findViewById(R.id.connecting_spinner)
     private val text: TextView = parentView.findViewById(R.id.connection_status)

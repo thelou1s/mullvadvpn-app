@@ -8,6 +8,8 @@ import android.text.TextWatcher
 import android.widget.EditText
 import android.widget.ImageButton
 
+import net.mullvad.mullvadvpn.model.LoginState
+
 const val MIN_ACCOUNT_TOKEN_LENGTH = 10
 
 class AccountInput(val parentView: View, val context: Context) {

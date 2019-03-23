@@ -2,6 +2,8 @@ package net.mullvad.mullvadvpn
 
 import android.view.View
 
+import net.mullvad.mullvadvpn.model.ConnectionState
+
 class NotificationBanner(val parentView: View) {
     private val banner: View = parentView.findViewById(R.id.notification_banner)
     private var visible = false

@@ -3,6 +3,8 @@ package net.mullvad.mullvadvpn
 import android.content.Context
 import android.view.View
 
+import net.mullvad.mullvadvpn.model.ConnectionState
+
 class HeaderBar(val parentView: View, val context: Context) {
     private val headerBar: View = parentView.findViewById(R.id.header_bar)
 

@@ -4,6 +4,9 @@ import java.io.File
 import java.io.InputStream
 import java.io.OutputStream
 
+import net.mullvad.mullvadvpn.model.AccountData
+import net.mullvad.mullvadvpn.model.Settings
+
 class MullvadIpcClient {
     init {
         System.loadLibrary("mullvad_jni")

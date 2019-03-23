@@ -3,6 +3,8 @@ package net.mullvad.mullvadvpn
 import android.view.View
 import android.widget.Button
 
+import net.mullvad.mullvadvpn.model.ConnectionState
+
 class ConnectActionButton(val parentView: View) {
     private val button: Button = parentView.findViewById(R.id.action_button)
 
