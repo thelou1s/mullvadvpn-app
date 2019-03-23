@@ -14,7 +14,7 @@ class MainActivity : FragmentActivity() {
     private lateinit var daemon: MullvadDaemon
     private lateinit var daemonProcess: Process
 
-    lateinit var ipcClient: MullvadIpcClient
+    val ipcClient = MullvadIpcClient()
 
     var selectedRelayItemCode: String? = null
 
@@ -52,6 +52,5 @@ class MainActivity : FragmentActivity() {
 
         extractDaemonJob.join()
         daemonProcess = daemon.run()
-        ipcClient = MullvadIpcClient()
     }
 }
