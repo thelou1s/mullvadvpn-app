@@ -100,6 +100,24 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_getCurrentVe
 
 #[no_mangle]
 #[allow(non_snake_case)]
+pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_getSettings<'env, 'this>(
+    env: JNIEnv<'env>,
+    _: JObject<'this>,
+) -> JObject<'env> {
+    let mut ipc_client = lock_ipc_client();
+
+    match ipc_client.get_settings() {
+        Ok(settings) => settings.into_java(&env),
+        Err(error) => {
+            let chained_error = error.chain_err(|| "Failed to get settings");
+            log::error!("{}", chained_error.display_chain());
+            JObject::null()
+        }
+    }
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
 pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_setAccount(
     env: JNIEnv,
     _: JObject,
@@ -175,6 +193,21 @@ impl<'env> IntoJava<'env> for String {
     }
 }
 
+impl<'env, T> IntoJava<'env> for Option<T>
+where
+    T: IntoJava<'env>,
+    T::JavaType: From<JObject<'env>>,
+{
+    type JavaType = T::JavaType;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        match self {
+            Some(data) => data.into_java(env),
+            None => T::JavaType::from(JObject::null()),
+        }
+    }
+}
+
 impl<'env> IntoJava<'env> for AccountData {
     type JavaType = JObject<'env>;
 
@@ -194,6 +227,31 @@ impl<'env> IntoJava<'env> for AccountData {
             Ok(object) => object,
             Err(_) => {
                 log::error!("Failed to create AccountData Java object");
+                JObject::null()
+            }
+        }
+    }
+}
+
+impl<'env> IntoJava<'env> for Settings {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        let class = match env.find_class("net/mullvad/mullvadvpn/Settings") {
+            Ok(class) => class,
+            Err(_) => {
+                log::error!("Failed to find Settings Java class");
+                return JObject::null();
+            }
+        };
+
+        let account_token = self.get_account_token().into_java(env);
+        let parameters = [JValue::Object(JObject::from(account_token))];
+
+        match env.new_object(class, "(Ljava/lang/String;)V", &parameters) {
+            Ok(object) => object,
+            Err(_) => {
+                log::error!("Failed to create Settings Java object");
                 JObject::null()
             }
         }

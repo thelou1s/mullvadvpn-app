@@ -12,6 +12,7 @@ class MullvadIpcClient {
 
     external fun getAccountData(accountToken: String): AccountData?
     external fun getCurrentVersion(): String
+    external fun getSettings(): Settings
     external fun setAccount(accountToken: String?)
 
     private external fun startLogging()
