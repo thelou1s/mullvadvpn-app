@@ -267,10 +267,14 @@ impl<'env> IntoJava<'env> for AccountData {
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
         let class = get_class("net/mullvad/mullvadvpn/model/AccountData");
-        let account_expiry = self.expiry.to_string().into_java(env);
-        let parameters = [JValue::Object(JObject::from(account_expiry))];
+        let account_expiry = JObject::from(self.expiry.to_string().into_java(env));
+        let parameters = [JValue::Object(account_expiry)];
 
-        match env.new_object(class, "(Ljava/lang/String;)V", &parameters) {
+        let result = env.new_object(&class, "(Ljava/lang/String;)V", &parameters);
+
+        let _ = env.delete_local_ref(account_expiry);
+
+        match result {
             Ok(object) => object,
             Err(_) => {
                 log::error!("Failed to create AccountData Java object");
@@ -285,10 +289,14 @@ impl<'env> IntoJava<'env> for Settings {
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
         let class = get_class("net/mullvad/mullvadvpn/model/Settings");
-        let account_token = self.get_account_token().into_java(env);
-        let parameters = [JValue::Object(JObject::from(account_token))];
+        let account_token = JObject::from(self.get_account_token().into_java(env));
+        let parameters = [JValue::Object(account_token)];
 
-        match env.new_object(&class, "(Ljava/lang/String;)V", &parameters) {
+        let result = env.new_object(&class, "(Ljava/lang/String;)V", &parameters);
+
+        let _ = env.delete_local_ref(account_token);
+
+        match result {
             Ok(object) => object,
             Err(_) => {
                 log::error!("Failed to create Settings Java object");
