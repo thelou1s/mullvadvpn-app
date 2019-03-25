@@ -1,6 +1,7 @@
 use error_chain::*;
 use jni::{
-    objects::{GlobalRef, JObject, JString, JValue},
+    objects::{GlobalRef, JList, JObject, JString, JValue},
+    sys::jint,
     JNIEnv,
 };
 use lazy_static::lazy_static;
@@ -16,6 +17,7 @@ use std::{
 };
 
 static CLASSES_TO_LOAD: &[&str] = &[
+    "java/util/ArrayList",
     "net/mullvad/mullvadvpn/model/AccountData",
     "net/mullvad/mullvadvpn/model/Settings",
 ];
@@ -259,6 +261,44 @@ where
             Some(data) => data.into_java(env),
             None => T::JavaType::from(JObject::null()),
         }
+    }
+}
+
+impl<'env, T> IntoJava<'env> for Vec<T>
+where
+    T: IntoJava<'env>,
+    JObject<'env>: From<T::JavaType>,
+{
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        let class = get_class("java/util/ArrayList");
+        let initial_capacity = self.len();
+        let parameters = [JValue::Int(initial_capacity as jint)];
+
+        let list_object = match env.new_object(&class, "(I)V", &parameters) {
+            Ok(object) => object,
+            Err(_) => {
+                log::error!("Failed to create ArrayList object");
+                panic!("Failed to create ArrayList");
+            }
+        };
+
+        let list = match JList::from_env(env, list_object) {
+            Ok(list) => list,
+            Err(error) => {
+                log::error!("Failed to create List with ArrayList: {}", error);
+                panic!("Failed to create JList");
+            }
+        };
+
+        for element in self {
+            let java_element = JObject::from(element.into_java(env));
+            let _ = list.add(java_element);
+            let _ = env.delete_local_ref(java_element);
+        }
+
+        list_object
     }
 }
 
