@@ -1,6 +1,7 @@
+mod from_java;
 mod into_java;
 
-use crate::into_java::IntoJava;
+use crate::{from_java::FromJava, into_java::IntoJava};
 use error_chain::*;
 use jni::{
     objects::{GlobalRef, JObject, JString},
@@ -11,7 +12,6 @@ use mullvad_ipc_client::{new_standalone_ipc_client, DaemonRpcClient};
 use mullvad_paths::{get_log_dir, get_rpc_socket_path};
 use std::{
     collections::HashMap,
-    ptr,
     sync::{Mutex, MutexGuard, RwLock},
     thread,
     time::Duration,
@@ -125,15 +125,7 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_getAccountDa
 ) -> JObject<'env> {
     let mut ipc_client = lock_ipc_client();
 
-    let account = if accountToken.into_inner() == ptr::null_mut() {
-        log::error!("Attempt to get account data for no account");
-        return JObject::null();
-    } else {
-        String::from(
-            env.get_string(accountToken)
-                .expect("Failed to convert account string from Java type"),
-        )
-    };
+    let account = String::from_java(&env, accountToken);
 
     match ipc_client.get_account_data(account) {
         Ok(data) => data.into_java(&env),
@@ -214,14 +206,7 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_setAccount(
 ) {
     let mut ipc_client = lock_ipc_client();
 
-    let account = if accountToken.into_inner() == ptr::null_mut() {
-        None
-    } else {
-        Some(String::from(
-            env.get_string(accountToken)
-                .expect("Failed to convert account string from Java type"),
-        ))
-    };
+    let account = <Option<String> as FromJava>::from_java(&env, accountToken);
 
     if let Err(error) = ipc_client.set_account(account) {
         let chained_error = error.chain_err(|| "Failed to set account");
