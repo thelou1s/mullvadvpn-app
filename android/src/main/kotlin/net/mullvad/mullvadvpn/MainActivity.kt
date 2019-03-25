@@ -12,6 +12,7 @@ import kotlinx.coroutines.Job
 import android.os.Bundle
 import android.support.v4.app.FragmentActivity
 
+import net.mullvad.mullvadvpn.model.RelaySettings
 import net.mullvad.mullvadvpn.model.Settings
 import net.mullvad.mullvadvpn.relaylist.RelayItem
 import net.mullvad.mullvadvpn.relaylist.RelayList
@@ -76,6 +77,7 @@ class MainActivity : FragmentActivity() {
         extractDaemonJob.join()
         daemonProcess = daemon.run()
         daemonStarted.complete(Unit)
+        restoreSelectedRelayListItem()
     }
 
     private fun fetchRelayList() = GlobalScope.async(Dispatchers.Default) {
@@ -86,5 +88,19 @@ class MainActivity : FragmentActivity() {
     private fun fetchSettings() = GlobalScope.async(Dispatchers.Default) {
         daemonStarted.await()
         ipcClient.getSettings()
+    }
+
+    private suspend fun restoreSelectedRelayListItem() {
+        val relaySettings = asyncSettings.await().relaySettings
+
+        when (relaySettings) {
+            is RelaySettings.CustomTunnelEndpoint -> selectedRelayItem = null
+            is RelaySettings.RelayConstraints -> {
+                val location = relaySettings.location
+                val relayList = asyncRelayList.await()
+
+                selectedRelayItem = relayList.findItemForLocation(location)
+            }
+        }
     }
 }
