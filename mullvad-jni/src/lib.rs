@@ -1,6 +1,6 @@
 use error_chain::*;
 use jni::{
-    objects::{JObject, JString, JValue},
+    objects::{GlobalRef, JObject, JString, JValue},
     JNIEnv,
 };
 use lazy_static::lazy_static;
@@ -8,17 +8,61 @@ use mullvad_ipc_client::{new_standalone_ipc_client, DaemonRpcClient};
 use mullvad_paths::{get_log_dir, get_rpc_socket_path};
 use mullvad_types::{account::AccountData, settings::Settings};
 use std::{
+    collections::HashMap,
     ptr,
-    sync::{Mutex, MutexGuard},
+    sync::{Mutex, MutexGuard, RwLock},
     thread,
     time::Duration,
 };
 
+static CLASSES_TO_LOAD: &[&str] = &[
+    "net/mullvad/mullvadvpn/model/AccountData",
+    "net/mullvad/mullvadvpn/model/Settings",
+];
+
 lazy_static! {
     static ref IPC_CLIENT: Mutex<DaemonRpcClient> = connect();
+    static ref CLASSES: RwLock<HashMap<&'static str, GlobalRef>> =
+        RwLock::new(HashMap::with_capacity(CLASSES_TO_LOAD.len()));
 }
 
 error_chain! {}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_loadClasses(
+    env: JNIEnv,
+    _: JObject,
+) {
+    let mut classes = CLASSES.write().unwrap();
+
+    for class in CLASSES_TO_LOAD {
+        classes.insert(class, load_class_reference(&env, class));
+    }
+}
+
+fn load_class_reference(env: &JNIEnv, name: &str) -> GlobalRef {
+    let class = match env.find_class(name) {
+        Ok(class) => class,
+        Err(_) => {
+            log::error!("Failed to find {} Java class", name);
+            panic!("Missing class");
+        }
+    };
+
+    let global_class_ref = match env.new_global_ref(JObject::from(class)) {
+        Ok(global_ref) => global_ref,
+        Err(_) => {
+            log::error!(
+                "Failed to convert local reference to {} Java class into a global reference",
+                name
+            );
+            panic!("Failed to convert local ref to global ref");
+        }
+    };
+
+    global_class_ref
+}
 
 #[no_mangle]
 #[allow(non_snake_case)]
@@ -169,12 +213,22 @@ fn try_connect() -> Result<DaemonRpcClient> {
     new_standalone_ipc_client(&rpc_socket_path).chain_err(|| "Failed to initialize IPC client")
 }
 
+fn get_class(name: &str) -> GlobalRef {
+    match CLASSES.read().unwrap().get(name) {
+        Some(class) => class.clone(),
+        None => {
+            log::error!("Class not loaded: {}", name);
+            panic!("Missing class");
+        }
+    }
+}
+
 fn lock_ipc_client() -> MutexGuard<'static, DaemonRpcClient> {
     IPC_CLIENT.lock().expect("IPC client mutex was poisoned")
 }
 
 trait IntoJava<'env> {
-    type JavaType;
+    type JavaType: 'env;
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType;
 }
@@ -212,14 +266,7 @@ impl<'env> IntoJava<'env> for AccountData {
     type JavaType = JObject<'env>;
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
-        let class = match env.find_class("net/mullvad/mullvadvpn/AccountData") {
-            Ok(class) => class,
-            Err(_) => {
-                log::error!("Failed to find AccountData Java class");
-                return JObject::null();
-            }
-        };
-
+        let class = get_class("net/mullvad/mullvadvpn/model/AccountData");
         let account_expiry = self.expiry.to_string().into_java(env);
         let parameters = [JValue::Object(JObject::from(account_expiry))];
 
@@ -237,18 +284,11 @@ impl<'env> IntoJava<'env> for Settings {
     type JavaType = JObject<'env>;
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
-        let class = match env.find_class("net/mullvad/mullvadvpn/Settings") {
-            Ok(class) => class,
-            Err(_) => {
-                log::error!("Failed to find Settings Java class");
-                return JObject::null();
-            }
-        };
-
+        let class = get_class("net/mullvad/mullvadvpn/model/Settings");
         let account_token = self.get_account_token().into_java(env);
         let parameters = [JValue::Object(JObject::from(account_token))];
 
-        match env.new_object(class, "(Ljava/lang/String;)V", &parameters) {
+        match env.new_object(&class, "(Ljava/lang/String;)V", &parameters) {
             Ok(object) => object,
             Err(_) => {
                 log::error!("Failed to create Settings Java object");

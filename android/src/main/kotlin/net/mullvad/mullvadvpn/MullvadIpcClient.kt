@@ -11,6 +11,7 @@ class MullvadIpcClient {
     init {
         System.loadLibrary("mullvad_jni")
         startLogging()
+        loadClasses()
     }
 
     external fun getAccountData(accountToken: String): AccountData?
@@ -19,4 +20,5 @@ class MullvadIpcClient {
     external fun setAccount(accountToken: String?)
 
     private external fun startLogging()
+    private external fun loadClasses()
 }
