@@ -26,6 +26,8 @@ use std::{
 static CLASSES_TO_LOAD: &[&str] = &[
     "java/util/ArrayList",
     "net/mullvad/mullvadvpn/model/AccountData",
+    "net/mullvad/mullvadvpn/model/Constraint$Any",
+    "net/mullvad/mullvadvpn/model/Constraint$Only",
     "net/mullvad/mullvadvpn/model/LocationConstraint$City",
     "net/mullvad/mullvadvpn/model/LocationConstraint$Country",
     "net/mullvad/mullvadvpn/model/LocationConstraint$Hostname",
@@ -510,7 +512,7 @@ impl<'env> IntoJava<'env> for RelayConstraints {
 
         let result = env.new_object(
             &class,
-            "(Lnet/mullvad/mullvadvpn/model/LocationConstraint;)V",
+            "(Lnet/mullvad/mullvadvpn/model/Constraint;)V",
             &parameters,
         );
 
@@ -535,8 +537,34 @@ where
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
         match self {
-            Constraint::Any => JObject::null(),
-            Constraint::Only(constraint) => JObject::from(constraint.into_java(env)),
+            Constraint::Any => {
+                let class = get_class("net/mullvad/mullvadvpn/model/Constraint$Any");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create Constraint.Any Java object");
+                        JObject::null()
+                    }
+                }
+            }
+            Constraint::Only(constraint) => {
+                let class = get_class("net/mullvad/mullvadvpn/model/Constraint$Only");
+                let value = JObject::from(constraint.into_java(env));
+                let parameters = [JValue::Object(value)];
+
+                let result = env.new_object(&class, "(Ljava/lang/Object;)V", &parameters);
+
+                let _ = env.delete_local_ref(value);
+
+                match result {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create Constraint.Only Java object");
+                        JObject::null()
+                    }
+                }
+            }
         }
     }
 }
