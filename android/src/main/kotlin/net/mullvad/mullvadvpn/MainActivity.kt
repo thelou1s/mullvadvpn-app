@@ -1,12 +1,17 @@
 package net.mullvad.mullvadvpn
 
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 
 import android.os.Bundle
 import android.support.v4.app.FragmentActivity
+
+import net.mullvad.mullvadvpn.relaylist.RelayList
 
 class MainActivity : FragmentActivity() {
     private lateinit var extractDaemonJob: Job
@@ -15,6 +20,12 @@ class MainActivity : FragmentActivity() {
     private lateinit var daemonProcess: Process
 
     val ipcClient = MullvadIpcClient()
+
+    private var getRelayListJob: Deferred<RelayList>? = null
+    val relayList: RelayList
+        get() = runBlocking {
+            getRelayListJob!!.await()
+        }
 
     var selectedRelayItemCode: String? = null
 
@@ -31,6 +42,7 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onDestroy() {
+        getRelayListJob?.cancel()
         extractDaemonJob.cancel()
         startDaemonJob.cancel()
         daemonProcess.destroy()
@@ -52,5 +64,11 @@ class MainActivity : FragmentActivity() {
 
         extractDaemonJob.join()
         daemonProcess = daemon.run()
+
+        getRelayListJob = fetchRelayList()
+    }
+
+    private fun fetchRelayList() = GlobalScope.async(Dispatchers.Default) {
+        RelayList(ipcClient.getRelayLocations())
     }
 }
