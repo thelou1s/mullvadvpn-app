@@ -744,7 +744,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "jni"
 version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes#4e0a2af77ee3b76755218ec3f5266bd8b280b18b"
 dependencies = [
  "cesu8 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "combine 3.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1208,7 +1208,7 @@ dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fern 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
- "jni 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "jni 0.11.0 (git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mullvad-ipc-client 0.1.0",
@@ -2778,7 +2778,7 @@ dependencies = [
 "checksum ipnetwork 0.14.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b3d862c86f7867f19b693ec86765e0252d82e53d4240b9b629815675a0714ad1"
 "checksum iproute2 0.0.2 (git+https://github.com/mullvad/netlink?branch=ignore-hw-address)" = "<none>"
 "checksum itoa 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)" = "1306f3464951f30e30d12373d31c79fbd52d236e5e896fd92f96ec7babbbe60b"
-"checksum jni 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "294eca097d1dc0bf59de5ab9f7eafa5f77129e9f6464c957ed3ddeb705fb4292"
+"checksum jni 0.11.0 (git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes)" = "<none>"
 "checksum jni-sys 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "8eaf4bc02d17cbdd7ff4c7438cafcdf7fb9a4613313ad11b4f8fefe7d3fa0130"
 "checksum jsonrpc-client-core 0.5.0 (git+https://github.com/mullvad/jsonrpc-client-rs?rev=68aac55b)" = "<none>"
 "checksum jsonrpc-client-core 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f29cb249837420fb0cee7fb0fbf1d22679e121b160e71bb5e0d90b9df241c23e"
