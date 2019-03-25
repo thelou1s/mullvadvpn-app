@@ -9,11 +9,14 @@ use mullvad_ipc_client::{new_standalone_ipc_client, DaemonRpcClient};
 use mullvad_paths::{get_log_dir, get_rpc_socket_path};
 use mullvad_types::{
     account::AccountData,
+    relay_constraints::{Constraint, LocationConstraint, RelayConstraints, RelaySettings},
     relay_list::{Relay, RelayList, RelayListCity, RelayListCountry},
     settings::Settings,
+    CustomTunnelEndpoint,
 };
 use std::{
     collections::HashMap,
+    fmt::Debug,
     ptr,
     sync::{Mutex, MutexGuard, RwLock},
     thread,
@@ -23,10 +26,15 @@ use std::{
 static CLASSES_TO_LOAD: &[&str] = &[
     "java/util/ArrayList",
     "net/mullvad/mullvadvpn/model/AccountData",
+    "net/mullvad/mullvadvpn/model/LocationConstraint$City",
+    "net/mullvad/mullvadvpn/model/LocationConstraint$Country",
+    "net/mullvad/mullvadvpn/model/LocationConstraint$Hostname",
     "net/mullvad/mullvadvpn/model/Relay",
     "net/mullvad/mullvadvpn/model/RelayList",
     "net/mullvad/mullvadvpn/model/RelayListCity",
     "net/mullvad/mullvadvpn/model/RelayListCountry",
+    "net/mullvad/mullvadvpn/model/RelaySettings$CustomTunnelEndpoint",
+    "net/mullvad/mullvadvpn/model/RelaySettings$RelayConstraints",
     "net/mullvad/mullvadvpn/model/Settings",
 ];
 
@@ -465,15 +473,169 @@ impl<'env> IntoJava<'env> for Relay {
     }
 }
 
+impl<'env> IntoJava<'env> for RelaySettings {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        match self {
+            RelaySettings::CustomTunnelEndpoint(endpoint) => endpoint.into_java(env),
+            RelaySettings::Normal(relay_constraints) => relay_constraints.into_java(env),
+        }
+    }
+}
+
+impl<'env> IntoJava<'env> for CustomTunnelEndpoint {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        let class = get_class("net/mullvad/mullvadvpn/model/RelaySettings$CustomTunnelEndpoint");
+
+        match env.new_object(&class, "()V", &[]) {
+            Ok(object) => object,
+            Err(_) => {
+                log::error!("Failed to create CustomTunnelEndpoint Java object");
+                JObject::null()
+            }
+        }
+    }
+}
+
+impl<'env> IntoJava<'env> for RelayConstraints {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        let class = get_class("net/mullvad/mullvadvpn/model/RelaySettings$RelayConstraints");
+        let location = self.location.into_java(env);
+        let parameters = [JValue::Object(location)];
+
+        let result = env.new_object(
+            &class,
+            "(Lnet/mullvad/mullvadvpn/model/LocationConstraint;)V",
+            &parameters,
+        );
+
+        let _ = env.delete_local_ref(location);
+
+        match result {
+            Ok(object) => object,
+            Err(_) => {
+                log::error!("Failed to create RelaySettings.RelayConstraints Java object");
+                JObject::null()
+            }
+        }
+    }
+}
+
+impl<'env, T> IntoJava<'env> for Constraint<T>
+where
+    T: Clone + Eq + Debug + IntoJava<'env>,
+    JObject<'env>: From<T::JavaType>,
+{
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        match self {
+            Constraint::Any => JObject::null(),
+            Constraint::Only(constraint) => JObject::from(constraint.into_java(env)),
+        }
+    }
+}
+
+impl<'env> IntoJava<'env> for LocationConstraint {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        match self {
+            LocationConstraint::Country(country_code) => {
+                let class = get_class("net/mullvad/mullvadvpn/model/LocationConstraint$Country");
+                let country = JObject::from(country_code.into_java(env));
+                let parameters = [JValue::Object(country)];
+
+                let result = env.new_object(&class, "(Ljava/lang/String;)V", &parameters);
+
+                let _ = env.delete_local_ref(country);
+
+                match result {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create LocationConstraint.Country Java object");
+                        JObject::null()
+                    }
+                }
+            }
+            LocationConstraint::City(country_code, city_code) => {
+                let class = get_class("net/mullvad/mullvadvpn/model/LocationConstraint$City");
+                let country = JObject::from(country_code.into_java(env));
+                let city = JObject::from(city_code.into_java(env));
+                let parameters = [JValue::Object(country), JValue::Object(city)];
+
+                let result = env.new_object(
+                    &class,
+                    "(Ljava/lang/String;Ljava/lang/String;)V",
+                    &parameters,
+                );
+
+                let _ = env.delete_local_ref(country);
+                let _ = env.delete_local_ref(city);
+
+                match result {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create LocationConstraint.City Java object");
+                        JObject::null()
+                    }
+                }
+            }
+            LocationConstraint::Hostname(country_code, city_code, hostname) => {
+                let class = get_class("net/mullvad/mullvadvpn/model/LocationConstraint$Hostname");
+                let country = JObject::from(country_code.into_java(env));
+                let city = JObject::from(city_code.into_java(env));
+                let hostname = JObject::from(hostname.into_java(env));
+                let parameters = [
+                    JValue::Object(country),
+                    JValue::Object(city),
+                    JValue::Object(hostname),
+                ];
+
+                let result = env.new_object(
+                    &class,
+                    "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
+                    &parameters,
+                );
+
+                let _ = env.delete_local_ref(country);
+                let _ = env.delete_local_ref(city);
+                let _ = env.delete_local_ref(hostname);
+
+                match result {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create LocationConstraint.Hostname Java object");
+                        JObject::null()
+                    }
+                }
+            }
+        }
+    }
+}
+
 impl<'env> IntoJava<'env> for Settings {
     type JavaType = JObject<'env>;
 
     fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
         let class = get_class("net/mullvad/mullvadvpn/model/Settings");
         let account_token = JObject::from(self.get_account_token().into_java(env));
-        let parameters = [JValue::Object(account_token)];
+        let relay_settings = self.get_relay_settings().into_java(env);
+        let parameters = [
+            JValue::Object(account_token),
+            JValue::Object(relay_settings),
+        ];
 
-        let result = env.new_object(&class, "(Ljava/lang/String;)V", &parameters);
+        let result = env.new_object(
+            &class,
+            "(Ljava/lang/String;Lnet/mullvad/mullvadvpn/model/RelaySettings;)V",
+            &parameters,
+        );
 
         let _ = env.delete_local_ref(account_token);
 
