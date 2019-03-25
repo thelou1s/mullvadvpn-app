@@ -38,8 +38,7 @@ class LaunchFragment : Fragment() {
 
     private fun checkForAccountToken() = GlobalScope.async(Dispatchers.Default) {
         val parentActivity = activity as MainActivity
-        val ipcClient = parentActivity.ipcClient
-        val settings = ipcClient.getSettings()
+        val settings = parentActivity.asyncSettings.await()
 
         settings.accountToken != null
     }
