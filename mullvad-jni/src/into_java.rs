@@ -12,6 +12,7 @@ use mullvad_types::{
     CustomTunnelEndpoint,
 };
 use std::fmt::Debug;
+use talpid_types::tunnel::TunnelStateTransition;
 
 pub trait IntoJava<'env> {
     type JavaType: 'env;
@@ -417,6 +418,80 @@ impl<'env> IntoJava<'env> for Settings {
             Err(_) => {
                 log::error!("Failed to create Settings Java object");
                 JObject::null()
+            }
+        }
+    }
+}
+
+impl<'env> IntoJava<'env> for TunnelStateTransition {
+    type JavaType = JObject<'env>;
+
+    fn into_java(self, env: &JNIEnv<'env>) -> Self::JavaType {
+        match self {
+            TunnelStateTransition::Disconnected => {
+                let class =
+                    get_class("net/mullvad/mullvadvpn/model/TunnelStateTransition$Disconnected");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!(
+                            "Failed to create TunnelStateTransition.Disconnected Java object"
+                        );
+                        JObject::null()
+                    }
+                }
+            }
+            TunnelStateTransition::Connecting(_) => {
+                let class =
+                    get_class("net/mullvad/mullvadvpn/model/TunnelStateTransition$Connecting");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!(
+                            "Failed to create TunnelStateTransition.Connecting Java object"
+                        );
+                        JObject::null()
+                    }
+                }
+            }
+            TunnelStateTransition::Connected(_) => {
+                let class =
+                    get_class("net/mullvad/mullvadvpn/model/TunnelStateTransition$Connected");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create TunnelStateTransition.Connected Java object");
+                        JObject::null()
+                    }
+                }
+            }
+            TunnelStateTransition::Disconnecting(_) => {
+                let class =
+                    get_class("net/mullvad/mullvadvpn/model/TunnelStateTransition$Disconnecting");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!(
+                            "Failed to create TunnelStateTransition.Disconnecting Java object"
+                        );
+                        JObject::null()
+                    }
+                }
+            }
+            TunnelStateTransition::Blocked(_) => {
+                let class = get_class("net/mullvad/mullvadvpn/model/TunnelStateTransition$Blocked");
+
+                match env.new_object(&class, "()V", &[]) {
+                    Ok(object) => object,
+                    Err(_) => {
+                        log::error!("Failed to create TunnelStateTransition.Blocked Java object");
+                        JObject::null()
+                    }
+                }
             }
         }
     }

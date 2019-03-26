@@ -13,9 +13,12 @@ crate_type = ["cdylib"]
 error-chain = "0.12"
 chrono = "0.4"
 fern = "0.5"
+futures = "0.1"
 jni = { git = "https://github.com/mullvad/jni-rs", branch = "flexible-lifetimes" }
+jsonrpc-client-pubsub = { git = "https://github.com/mullvad/jsonrpc-client-rs", rev = "68aac55b" }
 lazy_static = "1"
 log = "0.4"
 mullvad-ipc-client = { path = "../mullvad-ipc-client" }
 mullvad-paths = { path = "../mullvad-paths" }
 mullvad-types = { path = "../mullvad-types" }
+talpid-types = { path = "../talpid-types" }

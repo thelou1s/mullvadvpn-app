@@ -744,7 +744,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 [[package]]
 name = "jni"
 version = "0.11.0"
-source = "git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes#4e0a2af77ee3b76755218ec3f5266bd8b280b18b"
+source = "git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes#e59e2713ebbdb68a80e719ad524d16bfaaf35b22"
 dependencies = [
  "cesu8 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "combine 3.6.7 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1208,12 +1208,15 @@ dependencies = [
  "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "error-chain 0.12.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "fern 0.5.7 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.1.25 (registry+https://github.com/rust-lang/crates.io-index)",
  "jni 0.11.0 (git+https://github.com/mullvad/jni-rs?branch=flexible-lifetimes)",
+ "jsonrpc-client-pubsub 0.1.0 (git+https://github.com/mullvad/jsonrpc-client-rs?rev=68aac55b)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "mullvad-ipc-client 0.1.0",
  "mullvad-paths 0.1.0",
  "mullvad-types 0.1.0",
+ "talpid-types 0.1.0",
 ]
 
 [[package]]

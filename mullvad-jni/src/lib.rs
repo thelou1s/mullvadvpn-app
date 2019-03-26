@@ -1,8 +1,9 @@
 mod from_java;
 mod into_java;
 mod is_null;
+mod tunnel_event_listener;
 
-use crate::{from_java::FromJava, into_java::IntoJava};
+use crate::{from_java::FromJava, into_java::IntoJava, tunnel_event_listener::TunnelEventListener};
 use error_chain::*;
 use jni::{
     objects::{GlobalRef, JObject, JString},
@@ -35,6 +36,12 @@ static CLASSES_TO_LOAD: &[&str] = &[
     "net/mullvad/mullvadvpn/model/RelaySettingsUpdate$CustomTunnelEndpoint",
     "net/mullvad/mullvadvpn/model/RelaySettingsUpdate$RelayConstraintsUpdate",
     "net/mullvad/mullvadvpn/model/Settings",
+    "net/mullvad/mullvadvpn/model/TunnelStateTransition$Blocked",
+    "net/mullvad/mullvadvpn/model/TunnelStateTransition$Connected",
+    "net/mullvad/mullvadvpn/model/TunnelStateTransition$Connecting",
+    "net/mullvad/mullvadvpn/model/TunnelStateTransition$Disconnected",
+    "net/mullvad/mullvadvpn/model/TunnelStateTransition$Disconnecting",
+    "net/mullvad/mullvadvpn/MullvadIpcClient",
 ];
 
 lazy_static! {
@@ -49,10 +56,11 @@ error_chain! {}
 #[allow(non_snake_case)]
 pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_initialize(
     env: JNIEnv,
-    _: JObject,
+    this: JObject,
 ) {
     start_logging();
     load_class_references(&env);
+    spawn_tunnel_event_listener(&env, &this);
 }
 
 fn start_logging() {
@@ -115,6 +123,16 @@ pub fn get_class(name: &str) -> GlobalRef {
         None => {
             log::error!("Class not loaded: {}", name);
             panic!("Missing class");
+        }
+    }
+}
+
+fn spawn_tunnel_event_listener(env: &JNIEnv, this: &JObject) {
+    match TunnelEventListener::spawn(env, this) {
+        Ok(()) => log::info!("Tunnel event listener is running"),
+        Err(error) => {
+            let chained_error = error.chain_err(|| ("Failed to spawn tunnel event listener"));
+            log::error!("{}", chained_error.display_chain());
         }
     }
 }
