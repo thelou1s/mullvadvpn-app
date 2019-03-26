@@ -32,6 +32,8 @@ static CLASSES_TO_LOAD: &[&str] = &[
     "net/mullvad/mullvadvpn/model/RelayListCountry",
     "net/mullvad/mullvadvpn/model/RelaySettings$CustomTunnelEndpoint",
     "net/mullvad/mullvadvpn/model/RelaySettings$RelayConstraints",
+    "net/mullvad/mullvadvpn/model/RelaySettingsUpdate$CustomTunnelEndpoint",
+    "net/mullvad/mullvadvpn/model/RelaySettingsUpdate$RelayConstraintsUpdate",
     "net/mullvad/mullvadvpn/model/Settings",
 ];
 
@@ -211,6 +213,22 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_setAccount(
 
     if let Err(error) = ipc_client.set_account(account) {
         let chained_error = error.chain_err(|| "Failed to set account");
+        log::error!("{}", chained_error.display_chain());
+    }
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
+pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_updateRelaySettings(
+    env: JNIEnv,
+    _: JObject,
+    relaySettingsUpdate: JObject,
+) {
+    let mut ipc_client = lock_ipc_client();
+    let update = FromJava::from_java(&env, relaySettingsUpdate);
+
+    if let Err(error) = ipc_client.update_relay_settings(update) {
+        let chained_error = error.chain_err(|| "Failed to update relay settings");
         log::error!("{}", chained_error.display_chain());
     }
 }

@@ -6,6 +6,7 @@ import java.io.OutputStream
 
 import net.mullvad.mullvadvpn.model.AccountData
 import net.mullvad.mullvadvpn.model.RelayList
+import net.mullvad.mullvadvpn.model.RelaySettingsUpdate
 import net.mullvad.mullvadvpn.model.Settings
 
 class MullvadIpcClient {
@@ -20,6 +21,7 @@ class MullvadIpcClient {
     external fun getRelayLocations(): RelayList
     external fun getSettings(): Settings
     external fun setAccount(accountToken: String?)
+    external fun updateRelaySettings(update: RelaySettingsUpdate)
 
     private external fun startLogging()
     private external fun loadClasses()
