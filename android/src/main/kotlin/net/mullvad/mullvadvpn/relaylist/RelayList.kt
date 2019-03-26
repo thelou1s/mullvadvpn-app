@@ -17,7 +17,7 @@ class RelayList {
         }
     }
 
-    fun findItemForLocation(location: LocationConstraint?): RelayItem? {
+    fun findItemForLocation(location: LocationConstraint?, expand: Boolean = false): RelayItem? {
         when (location) {
             null -> return null
             is LocationConstraint.Country -> {
@@ -26,11 +26,20 @@ class RelayList {
             is LocationConstraint.City -> {
                 val country = countries.find { country -> country.code == location.countryCode }
 
+                if (expand) {
+                    country?.expanded = true
+                }
+
                 return country?.cities?.find { city -> city.code == location.cityCode }
             }
             is LocationConstraint.Hostname -> {
                 val country = countries.find { country -> country.code == location.countryCode }
                 val city = country?.cities?.find { city -> city.code == location.cityCode }
+
+                if (expand) {
+                    country?.expanded = true
+                    city?.expanded = true
+                }
 
                 return city?.relays?.find { relay -> relay.name == location.hostname }
             }
