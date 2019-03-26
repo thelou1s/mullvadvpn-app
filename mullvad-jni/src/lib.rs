@@ -277,7 +277,7 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_updateRelayS
 }
 
 fn connect() -> Mutex<DaemonRpcClient> {
-    for attempt in 1..=10 {
+    for attempt in 1..=15 {
         log::debug!("Connection attempt {}", attempt);
 
         match try_connect() {
@@ -285,7 +285,7 @@ fn connect() -> Mutex<DaemonRpcClient> {
             Err(error) => log::warn!("{}", error.display_chain()),
         }
 
-        let delay = (attempt - 1) * 50;
+        let delay = (attempt - 1) * 100 + 50;
         log::warn!("Retrying in {} ms", delay);
         thread::sleep(Duration::from_millis(delay));
     }
