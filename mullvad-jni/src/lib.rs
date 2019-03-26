@@ -132,6 +132,20 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_connect(_: J
 
 #[no_mangle]
 #[allow(non_snake_case)]
+pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_disconnect(
+    _: JNIEnv,
+    _: JObject,
+) {
+    let mut ipc_client = lock_ipc_client();
+
+    if let Err(error) = ipc_client.disconnect() {
+        let chained_error = error.chain_err(|| "Failed to request daemon to disconnect");
+        log::error!("{}", chained_error.display_chain());
+    }
+}
+
+#[no_mangle]
+#[allow(non_snake_case)]
 pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_getAccountData<'env, 'this>(
     env: JNIEnv<'env>,
     _: JObject<'this>,
