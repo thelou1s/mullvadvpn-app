@@ -12,8 +12,7 @@ import net.mullvad.mullvadvpn.model.Settings
 class MullvadIpcClient {
     init {
         System.loadLibrary("mullvad_jni")
-        startLogging()
-        loadClasses()
+        initialize()
     }
 
     external fun connect()
@@ -25,6 +24,5 @@ class MullvadIpcClient {
     external fun setAccount(accountToken: String?)
     external fun updateRelaySettings(update: RelaySettingsUpdate)
 
-    private external fun startLogging()
-    private external fun loadClasses()
+    private external fun initialize()
 }

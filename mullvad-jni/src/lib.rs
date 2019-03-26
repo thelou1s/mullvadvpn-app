@@ -47,10 +47,38 @@ error_chain! {}
 
 #[no_mangle]
 #[allow(non_snake_case)]
-pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_loadClasses(
+pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_initialize(
     env: JNIEnv,
     _: JObject,
 ) {
+    start_logging();
+    load_class_references(&env);
+}
+
+fn start_logging() {
+    let log_file = get_log_dir()
+        .expect("Failed to get log directory")
+        .join("jni.log");
+
+    let _ = fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .chain(
+            fern::log_file(&log_file)
+                .expect(&format!("Failed to log to file: {}", log_file.display())),
+        )
+        .apply();
+}
+
+fn load_class_references(env: &JNIEnv) {
     let mut classes = CLASSES.write().unwrap();
 
     for class in CLASSES_TO_LOAD {
@@ -89,34 +117,6 @@ pub fn get_class(name: &str) -> GlobalRef {
             panic!("Missing class");
         }
     }
-}
-
-#[no_mangle]
-#[allow(non_snake_case)]
-pub extern "system" fn Java_net_mullvad_mullvadvpn_MullvadIpcClient_startLogging(
-    _: JNIEnv,
-    _: JObject,
-) {
-    let log_file = get_log_dir()
-        .expect("Failed to get log directory")
-        .join("jni.log");
-
-    let _ = fern::Dispatch::new()
-        .format(|out, message, record| {
-            out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
-            ))
-        })
-        .level(log::LevelFilter::Debug)
-        .chain(
-            fern::log_file(&log_file)
-                .expect(&format!("Failed to log to file: {}", log_file.display())),
-        )
-        .apply();
 }
 
 #[no_mangle]
