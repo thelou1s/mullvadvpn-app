@@ -16,6 +16,7 @@ class MullvadIpcClient {
         loadClasses()
     }
 
+    external fun connect()
     external fun getAccountData(accountToken: String): AccountData?
     external fun getCurrentVersion(): String
     external fun getRelayLocations(): RelayList
