@@ -9,6 +9,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 
+import net.mullvad.mullvadvpn.model.Constraint
+import net.mullvad.mullvadvpn.model.LocationConstraint
+import net.mullvad.mullvadvpn.model.RelaySettingsUpdate
+import net.mullvad.mullvadvpn.relaylist.RelayItem
 import net.mullvad.mullvadvpn.relaylist.RelayItemDividerDecoration
 import net.mullvad.mullvadvpn.relaylist.RelayList
 import net.mullvad.mullvadvpn.relaylist.RelayListAdapter
@@ -39,6 +43,7 @@ class SelectLocationFragment : Fragment() {
 
         relayListAdapter.onSelect = { relayItem ->
             parentActivity.selectedRelayItem = relayItem
+            updateLocationConstraint(relayItem)
             close()
         }
 
@@ -48,5 +53,20 @@ class SelectLocationFragment : Fragment() {
 
             addItemDecoration(RelayItemDividerDecoration(context!!))
         }
+    }
+
+    private fun updateLocationConstraint(relayItem: RelayItem?) {
+        val parentActivity = activity as MainActivity
+        var constraint: Constraint<LocationConstraint>
+
+        if (relayItem == null) {
+            constraint = Constraint.Any()
+        } else {
+            constraint = Constraint.Only(relayItem.location)
+        }
+
+        parentActivity.ipcClient.updateRelaySettings(
+            RelaySettingsUpdate.RelayConstraintsUpdate(constraint)
+        )
     }
 }
