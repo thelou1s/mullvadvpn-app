@@ -1,5 +1,11 @@
 package net.mullvad.mullvadvpn
 
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+
+import android.content.Context
 import android.os.Bundle
 import android.os.Handler
 import android.support.v4.app.Fragment
@@ -8,7 +14,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 
-import net.mullvad.mullvadvpn.model.ConnectionState
+import net.mullvad.mullvadvpn.model.TunnelStateTransition
 
 class ConnectFragment : Fragment() {
     private lateinit var actionButton: ConnectActionButton
@@ -16,22 +22,14 @@ class ConnectFragment : Fragment() {
     private lateinit var notificationBanner: NotificationBanner
     private lateinit var status: ConnectionStatus
 
-    private lateinit var connectHandler: Handler
+    private lateinit var ipcClient: MullvadIpcClient
 
-    private var state = ConnectionState.Disconnected
-        set(value) {
-            actionButton.state = value
-            headerBar.state = value
-            notificationBanner.state = value
-            status.state = value
+    private var updateViewJob: Job? = null
 
-            field = value
-        }
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        connectHandler = Handler()
+        ipcClient = (context as MainActivity).ipcClient
     }
 
     override fun onCreateView(
@@ -51,28 +49,26 @@ class ConnectFragment : Fragment() {
 
         actionButton = ConnectActionButton(view)
         actionButton.apply {
-            onConnect = { connect() }
-            onCancel = { disconnect() }
-            onDisconnect = { disconnect() }
+            onConnect = { ipcClient.connect() }
+            onCancel = { ipcClient.disconnect() }
+            onDisconnect = { ipcClient.disconnect() }
         }
+
+        ipcClient.onTunnelStateChange = { state -> updateViewJob = updateView(state) }
 
         return view
     }
 
-    private fun connect() {
-        state = ConnectionState.Connecting
-
-        connectHandler.postDelayed(Runnable { connected() }, 1000)
+    override fun onDestroyView() {
+        updateViewJob?.cancel()
+        ipcClient.onTunnelStateChange = null
     }
 
-    private fun disconnect() {
-        state = ConnectionState.Disconnected
-
-        connectHandler.removeCallbacksAndMessages(null)
-    }
-
-    private fun connected() {
-        state = ConnectionState.Connected
+    private fun updateView(state: TunnelStateTransition) = GlobalScope.launch(Dispatchers.Main) {
+        actionButton.state = state
+        headerBar.setState(state)
+        notificationBanner.setState(state)
+        status.setState(state)
     }
 
     private fun openSwitchLocationScreen() {
