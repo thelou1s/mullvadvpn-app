@@ -1,5 +1,6 @@
 mod from_java;
 mod into_java;
+mod is_null;
 
 use crate::{from_java::FromJava, into_java::IntoJava};
 use error_chain::*;
