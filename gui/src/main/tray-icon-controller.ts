@@ -9,8 +9,12 @@ export default class TrayIconController {
   private iconImages: NativeImage[] = [];
   private monochromaticIconImages: NativeImage[] = [];
 
+  public get tray(): Tray {
+    return this.trayValue;
+  }
+
   constructor(
-    tray: Tray,
+    private trayValue: Tray,
     private iconTypeValue: TrayIconType,
     private useMonochromaticIconValue: boolean,
   ) {
@@ -19,7 +23,7 @@ export default class TrayIconController {
     const initialFrame = this.targetFrame();
     const animation = new KeyframeAnimation();
     animation.speed = 100;
-    animation.onFrame = (frameNumber) => tray.setImage(this.imageForFrame(frameNumber));
+    animation.onFrame = (frameNumber) => trayValue.setImage(this.imageForFrame(frameNumber));
     animation.play({ start: initialFrame, end: initialFrame });
 
     this.animation = animation;

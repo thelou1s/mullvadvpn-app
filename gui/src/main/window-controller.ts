@@ -156,6 +156,11 @@ export default class WindowController {
     this.installWindowReadyHandlers();
   }
 
+  public dispose() {
+    this.windowValue.close();
+    this.windowValue.destroy();
+  }
+
   public show(whenReady: boolean = true) {
     if (whenReady) {
       this.executeWhenWindowIsReady(() => this.showImmediately());

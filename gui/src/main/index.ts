@@ -289,20 +289,17 @@ class ApplicationMain {
     );
     this.connectToDaemon();
 
-    const window = this.createWindow();
     const tray = this.createTray();
-
-    const windowController = new WindowController(window, tray);
     const trayIconController = new TrayIconController(
       tray,
       'unsecured',
       process.platform === 'darwin' && this.guiSettings.monochromaticIcon,
     );
 
-    this.registerWindowListener(windowController);
     this.registerIpcListeners();
     this.setAppMenu();
-    this.addContextMenu(window);
+
+    const windowController = this.createWindowController(tray);
 
     this.windowController = windowController;
     this.trayIconController = trayIconController;
@@ -328,31 +325,73 @@ class ApplicationMain {
 
     if (process.env.NODE_ENV === 'development') {
       await this.installDevTools();
-      window.webContents.openDevTools({ mode: 'detach' });
+      windowController.window.webContents.openDevTools({ mode: 'detach' });
     }
 
     switch (process.platform) {
       case 'win32':
-        this.installWindowsMenubarAppWindowHandlers(tray, windowController);
+        this.installWindowsMenubarAppWindowHandlers(tray);
         break;
       case 'darwin':
-        this.installMacOsMenubarAppWindowHandlers(tray, windowController);
+        this.installMacOsMenubarAppWindowHandlers(tray);
         break;
       case 'linux':
-        this.installGenericMenubarAppWindowHandlers(tray, windowController);
-        this.installLinuxWindowCloseHandler(windowController);
+        this.installGenericMenubarAppWindowHandlers(tray);
+        this.installLinuxWindowCloseHandler();
         break;
       default:
-        this.installGenericMenubarAppWindowHandlers(tray, windowController);
+        this.installGenericMenubarAppWindowHandlers(tray);
         break;
     }
 
     if (this.shouldShowWindowOnStart() || process.env.NODE_ENV === 'development') {
       windowController.show();
     }
+  };
+
+  private createWindowController(tray: Tray) {
+    const window = this.createWindow();
+    const windowController = new WindowController(window, tray);
+
+    this.registerWindowListener(windowController);
+    this.addContextMenu(window);
+    this.addHooksForSystemMessages(window);
 
     window.loadFile(path.resolve(path.join(__dirname, '../renderer/index.html')));
-  };
+
+    return windowController;
+  }
+
+  private destroyWindowController() {
+    if (this.windowController) {
+      this.windowController.dispose();
+      this.windowController = undefined;
+
+      log.debug('Destroyed window controller')
+    }
+  }
+
+  private ensureWindowControllerExists() {
+    if (!this.windowController && this.trayIconController) {
+      this.windowController = this.createWindowController(this.trayIconController.tray);
+
+      log.info('Recreated window controller');
+    }
+  }
+
+  private addHooksForSystemMessages(window: BrowserWindow) {
+    if (process.platform === 'win32') {
+      // See MSDN for these constants https://docs.microsoft.com/en-us/windows/desktop/shutdown/wm-endsession
+      const WM_ENDSESSION = 0x16;
+      const ENDSESSION_LOGOFF = 0x80000000;
+
+      window.hookWindowMessage(WM_ENDSESSION, (_wParam: number, lParam: number) => {
+        if (lParam === ENDSESSION_LOGOFF && this.windowController) {
+          this.destroyWindowController();
+        }
+      });
+    }
+  }
 
   private onDaemonConnected = async () => {
     this.connectedToDaemon = true;
@@ -1115,11 +1154,22 @@ class ApplicationMain {
     return tray;
   }
 
-  private installWindowsMenubarAppWindowHandlers(tray: Tray, windowController: WindowController) {
-    tray.on('click', () => windowController.toggle());
-    tray.on('right-click', () => windowController.hide());
+  private installWindowsMenubarAppWindowHandlers(tray: Tray) {
+    tray.on('click', () => {
+      this.ensureWindowControllerExists();
 
-    windowController.window.on('blur', () => {
+      if (this.windowController) {
+        this.windowController.toggle();
+      }
+    });
+
+    tray.on('right-click', () => {
+      if (this.windowController) {
+        this.windowController.hide();
+      }
+    });
+
+    this.windowController!.window.on('blur', () => {
       // Detect if blur happened when user had a cursor above the tray icon.
       const trayBounds = tray.getBounds();
       const cursorPos = screen.getCursorScreenPoint();
@@ -1128,38 +1178,53 @@ class ApplicationMain {
         cursorPos.y >= trayBounds.y &&
         cursorPos.x <= trayBounds.x + trayBounds.width &&
         cursorPos.y <= trayBounds.y + trayBounds.height;
-      if (!isCursorInside) {
-        windowController.hide();
+      if (!isCursorInside && this.windowController) {
+        this.windowController.hide();
       }
     });
   }
 
   // setup NSEvent monitor to fix inconsistent window.blur on macOS
   // see https://github.com/electron/electron/issues/8689
-  private installMacOsMenubarAppWindowHandlers(tray: Tray, windowController: WindowController) {
+  private installMacOsMenubarAppWindowHandlers(tray: Tray) {
     // $FlowFixMe: this module is only available on macOS
     const { NSEventMonitor, NSEventMask } = require('nseventmonitor');
     const macEventMonitor = new NSEventMonitor();
     // tslint:disable-next-line
     const eventMask = NSEventMask.leftMouseDown | NSEventMask.rightMouseDown;
-    const window = windowController.window;
+    const window = this.windowController!.window;
 
-    window.on('show', () => macEventMonitor.start(eventMask, () => windowController.hide()));
+    window.on('show', () =>
+      macEventMonitor.start(eventMask, () => {
+        if (this.windowController) {
+          this.windowController.hide();
+        }
+      }),
+    );
     window.on('hide', () => macEventMonitor.stop());
-    tray.on('click', () => windowController.toggle());
-  }
-
-  private installGenericMenubarAppWindowHandlers(tray: Tray, windowController: WindowController) {
     tray.on('click', () => {
-      windowController.toggle();
+      if (this.windowController) {
+        this.windowController.toggle();
+      }
     });
   }
 
-  private installLinuxWindowCloseHandler(windowController: WindowController) {
-    windowController.window.on('close', (closeEvent: Event) => {
+  private installGenericMenubarAppWindowHandlers(tray: Tray) {
+    tray.on('click', () => {
+      if (this.windowController) {
+        this.windowController.toggle();
+      }
+    });
+  }
+
+  private installLinuxWindowCloseHandler() {
+    this.windowController!.window.on('close', (closeEvent: Event) => {
       if (process.platform === 'linux' && this.quitStage !== AppQuitStage.ready) {
         closeEvent.preventDefault();
-        windowController.hide();
+
+        if (this.windowController) {
+          this.windowController.hide();
+        }
       }
     });
   }
