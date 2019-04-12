@@ -157,7 +157,6 @@ export default class WindowController {
   }
 
   public dispose() {
-    this.windowValue.close();
     this.windowValue.destroy();
   }
 
