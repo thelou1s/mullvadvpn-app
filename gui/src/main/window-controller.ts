@@ -1,4 +1,5 @@
 import { BrowserWindow, Display, screen, Tray, WebContents } from 'electron';
+import log from 'electron-log';
 
 interface IPosition {
   x: number;
@@ -211,10 +212,19 @@ export default class WindowController {
   // Installs display event handlers to update the window position on any changes in the display or
   // workarea dimensions.
   private installDisplayMetricsHandler() {
+    log.info('Add display-metrics-changed listener.');
+
     screen.addListener('display-metrics-changed', this.onDisplayMetricsChanged);
+
     this.windowValue.once('closed', () => {
-      screen.removeListener('display-metrics-changed', this.onDisplayMetricsChanged);
+      log.info('Window "closed"');
+      this.uninstallDisplayMetricsHandler();
     });
+  }
+
+  private uninstallDisplayMetricsHandler() {
+    log.info('Remove display-metrics-changed listener.');
+    screen.removeListener('display-metrics-changed', this.onDisplayMetricsChanged);
   }
 
   private onDisplayMetricsChanged = (
@@ -222,6 +232,11 @@ export default class WindowController {
     _display: Display,
     changedMetrics: string[],
   ) => {
+    if (this.windowValue.isDestroyed()) {
+      log.debug('onDisplayMetricsChanged was triggered while the window is already destroyed.');
+      return;
+    }
+
     if (changedMetrics.includes('workArea') && this.windowValue.isVisible()) {
       this.updatePosition();
       this.notifyUpdateWindowShape();

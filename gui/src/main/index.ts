@@ -138,7 +138,6 @@ class ApplicationMain {
 
     app.on('activate', this.onActivate);
     app.on('ready', this.onReady);
-    app.on('window-all-closed', () => app.quit());
     app.on('before-quit', this.onBeforeQuit);
   }
 
@@ -228,6 +227,8 @@ class ApplicationMain {
   };
 
   private onBeforeQuit = async (event: Electron.Event) => {
+    event.preventDefault();
+    return;
     switch (this.quitStage) {
       case AppQuitStage.unready:
         // postpone the app shutdown
@@ -297,6 +298,7 @@ class ApplicationMain {
     );
 
     this.registerIpcListeners();
+    this.addScreenChangesListener();
     this.setAppMenu();
 
     const windowController = this.createWindowController(tray);
@@ -355,7 +357,6 @@ class ApplicationMain {
 
     this.registerWindowListener(windowController);
     this.addContextMenu(window);
-    this.addHooksForSystemMessages(window);
 
     window.loadFile(path.resolve(path.join(__dirname, '../renderer/index.html')));
 
@@ -364,32 +365,36 @@ class ApplicationMain {
 
   private destroyWindowController() {
     if (this.windowController) {
+      log.debug('Destroy window controller');
+
       this.windowController.dispose();
       this.windowController = undefined;
-
-      log.debug('Destroyed window controller')
     }
   }
 
   private ensureWindowControllerExists() {
     if (!this.windowController && this.trayIconController) {
-      this.windowController = this.createWindowController(this.trayIconController.tray);
+      log.info('Create window controller');
 
-      log.info('Recreated window controller');
+      this.windowController = this.createWindowController(this.trayIconController.tray);
     }
   }
 
-  private addHooksForSystemMessages(window: BrowserWindow) {
+  private addScreenChangesListener() {
     if (process.platform === 'win32') {
-      // See MSDN for these constants https://docs.microsoft.com/en-us/windows/desktop/shutdown/wm-endsession
-      const WM_ENDSESSION = 0x16;
-      const ENDSESSION_LOGOFF = 0x80000000;
+      const onDisplayMetricsChanged = (
+        _event: Electron.Event,
+        _display: Electron.Display,
+        changedMetrics: string[],
+      ) => {
+        log.info(`Got display changes: ${changedMetrics.join(', ')}`);
 
-      window.hookWindowMessage(WM_ENDSESSION, (_wParam: number, lParam: number) => {
-        if (lParam === ENDSESSION_LOGOFF && this.windowController) {
+        if (changedMetrics.includes('scaleFactor') || changedMetrics.includes('workArea')) {
           this.destroyWindowController();
         }
-      });
+      };
+
+      screen.addListener('display-metrics-changed', onDisplayMetricsChanged);
     }
   }
 
@@ -1164,9 +1169,10 @@ class ApplicationMain {
     });
 
     tray.on('right-click', () => {
-      if (this.windowController) {
-        this.windowController.hide();
-      }
+      // if (this.windowController) {
+      //   this.windowController.hide();
+      // }
+      this.destroyWindowController();
     });
 
     this.windowController!.window.on('blur', () => {
