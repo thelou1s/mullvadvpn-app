@@ -227,8 +227,8 @@ class ApplicationMain {
   };
 
   private onBeforeQuit = async (event: Electron.Event) => {
-    event.preventDefault();
-    return;
+    log.info('onBeforeQuit');
+
     switch (this.quitStage) {
       case AppQuitStage.unready:
         // postpone the app shutdown
@@ -351,9 +351,16 @@ class ApplicationMain {
     }
   };
 
+  onMainWindowClosed = () => {
+    log.info('Quit the app upon closing the main window.');
+    app.quit();
+  };
+
   private createWindowController(tray: Tray) {
     const window = this.createWindow();
     const windowController = new WindowController(window, tray);
+
+    window.on('closed', this.onMainWindowClosed);
 
     this.registerWindowListener(windowController);
     this.addContextMenu(window);
@@ -363,9 +370,14 @@ class ApplicationMain {
     return windowController;
   }
 
-  private destroyWindowController() {
+  private destroyWindowController(preventAppQuit = false) {
     if (this.windowController) {
       log.debug('Destroy window controller');
+
+      // make sure to remove the handler that quits the app
+      if (preventAppQuit) {
+        this.windowController.window.removeListener('closed', this.onMainWindowClosed);
+      }
 
       this.windowController.dispose();
       this.windowController = undefined;
@@ -390,7 +402,7 @@ class ApplicationMain {
         log.info(`Got display changes: ${changedMetrics.join(', ')}`);
 
         if (changedMetrics.includes('scaleFactor') || changedMetrics.includes('workArea')) {
-          this.destroyWindowController();
+          this.destroyWindowController(true);
         }
       };
 
@@ -1209,9 +1221,17 @@ class ApplicationMain {
     );
     window.on('hide', () => macEventMonitor.stop());
     tray.on('click', () => {
+      this.ensureWindowControllerExists();
+
       if (this.windowController) {
         this.windowController.toggle();
       }
+    });
+    tray.on('right-click', () => {
+      // if (this.windowController) {
+      //   this.windowController.hide();
+      // }
+      this.destroyWindowController(true);
     });
   }
 
